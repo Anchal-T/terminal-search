@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <curl/curl.h>
-#include "http_client.h"
+
 
 typedef struct{
     char *data;
@@ -60,4 +60,23 @@ int http_search(const char *url, const char *query, HTTPResponse *response){
 
     curl_easy_cleanup(curl);
     return 0; // Return 0 to indicate success
+}
+
+void http_response_free(HTTPResponse *response) {
+    if(response != NULL) {
+        free(response->data);
+        response->data = NULL;
+        response->size = 0;
+    }
+}
+
+int main(){
+    const char *url = "http://example.com/search";
+    const char *query = "test";
+    HTTPResponse response = {NULL, 0};
+
+    int result = http_search(url, query, &response);
+    printf("HTTP Search Result: %d\n", result);
+    http_response_free(&response);
+    return 0;
 }
