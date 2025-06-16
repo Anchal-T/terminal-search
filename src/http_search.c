@@ -33,6 +33,7 @@ int http_search(const char *url, const char *query, HTTPResponse *response){
         return -1; // Return -1 to indicate error
     }
 
+    curl_global_init(CURL_GLOBAL_DEFAULT);
     CURL *curl = curl_easy_init();
     if(curl == NULL) {
         fprintf(stderr, "Failed to initialize CURL\n");
@@ -43,5 +44,20 @@ int http_search(const char *url, const char *query, HTTPResponse *response){
     response->data[0] = '\0';
 
     response->size = 0;
-    
+
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, response);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+
+    CURLcode res = curl_easy_perform(curl);
+    if(res != CURLE_OK) {
+        fprintf(stderr, "CURL error: %s\n", curl_easy_strerror(res));
+        free(response->data);
+        curl_easy_cleanup(curl);
+        return -1; // Return -1 to indicate error
+    }
+
+    curl_easy_cleanup(curl);
+    return 0; // Return 0 to indicate success
 }
