@@ -2,12 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <curl/curl.h>
-
-
-typedef struct{
-    char *data;
-    size_t size;
-} HTTPResponse;
+#include "../headers/http_client.h"
 
 size_t write_callback(void *response, size_t size, size_t nmemb, void *userp){
     size_t total_size = size * nmemb;
@@ -70,13 +65,13 @@ void http_response_free(HTTPResponse *response) {
     }
 }
 
-int main(){
-    const char *url = "http://example.com/search";
-    const char *query = "test";
-    HTTPResponse response = {NULL, 0};
+// int main(){
+//     const char *url = "http://example.com/search";
+//     const char *query = "test";
+//     HTTPResponse response = {NULL, 0};
 
-    int result = http_search(url, query, &response);
-    printf("HTTP Search Result: %d\n", result);
-    http_response_free(&response);
-    return 0;
-}
+//     int result = http_search(url, query, &response);
+//     printf("HTTP Search Result: %d\n", result);
+//     http_response_free(&response);
+//     return 0;
+// }

@@ -1,22 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <cJson/cJSON.h>
+#include "../headers/http_client.h"
+#include <cjson/cJSON.h>
 
-#define DUCKDUCKGO_API = "https://api.duckduckgo.com/?q=%s&format=json&no_redirect=1&no_html=1&skip_disambig=1"
+
+#define DUCKDUCKGO_API "https://api.duckduckgo.com/?q=%s&format=json&no_redirect=1&no_html=1&skip_disambig=1"
 
 int api_search_duckduckgo(const char *query, cJSON **result) {
     if (query == NULL || result == NULL) {
         fprintf(stderr, "Invalid arguments provided to api_search_duckduckgo\n");
-        return -1; // Return -1 to indicate error
+        return -1;
     }
 
     char url[1024];
-    snsprintf(url, sizeof(url), DUCKDUCKGO_API, query);
-    HTTPResponse response = {null, 0};
+    snprintf(url, sizeof(url), DUCKDUCKGO_API, query);
+    HTTPResponse response = {NULL, 0};
     if(http_search(url, query, &response) != 0) {
         fprintf(stderr, "Failed to perform HTTP search\n");
-        return -1; // Return -1 to indicate error
+        return -1;
     }
 
     cJSON *json = cJSON_Parse(response.data);
@@ -25,32 +27,25 @@ int api_search_duckduckgo(const char *query, cJSON **result) {
         return -1;
     }
 
-    cJSON *topics = cJSON_GetObjectItem(json, "RelatedTopics");
-    if(!cJSON_IsArray(topics)) {
-        cJSON_Delete(json);
-        http_response_free(&response);
-        return -1; // Return -1 to indicate error
-    }
+    *result = json; // Pass parsed JSON back to caller
 
-    int count = cJSON_GetArraySize(topics);
-    response->result = calloc(count, sizeof(topics));
-    response->count = 0;
-
-    for(int i = 0; i < count; i++) {
-        cJSON *item = cJSON_GetArrayItem(topics, i);
-        cJSON *text = cJSON_GetObjectItem(item, "Text");
-        cJSON *first_url = cJSON_GetObjectItem(item, "FirstURL");
-
-        if(text && first_url){
-            response->results[response->count].title = strdup(text->valuestring);
-            response->results[response->count].url = strdup(first_url->valuestring);
-            response->results[response->count].snippet = NULL; // DuckDuckGo doesn't provide snippet
-            response->count++;
-
-        }
-    }
-
-    cJSON_Delete(json);
     http_response_free(&response);
+    return 0;
+}
+
+int main(){
+    const char *query = "fortnite";
+    cJSON *result = NULL;
+
+    int status = api_search_duckduckgo(query, &result);
+    if(status == 0 && result != NULL) {
+        char *json_string = cJSON_Print(result);
+        printf("Search Results: %s\n", json_string);
+        free(json_string);
+        cJSON_Delete(result);
+    } else {
+        fprintf(stderr, "Search failed or returned no results\n");
+    }
+
     return 0;
 }
