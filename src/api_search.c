@@ -33,15 +33,45 @@ int api_search_duckduckgo(const char *query, cJSON **result) {
     return 0;
 }
 
-int main(){
-    const char *query = "fortnite";
+void print_duckduckgo_results(cJSON *json) {
+    cJSON *topics = cJSON_GetObjectItem(json, "RelatedTopics");
+    if (!topics || !cJSON_IsArray(topics)) {
+        printf("No results found.\n");
+        return;
+    }
+
+    int count = 0;
+    for (cJSON *item = topics->child; item; item = item->next) {
+        // Some items may be "topics" with a "Topics" array inside
+        cJSON *subtopics = cJSON_GetObjectItem(item, "Topics");
+        if (subtopics && cJSON_IsArray(subtopics)) {
+            for (cJSON *subitem = subtopics->child; subitem; subitem = subitem->next) {
+                cJSON *text = cJSON_GetObjectItem(subitem, "Text");
+                cJSON *url = cJSON_GetObjectItem(subitem, "FirstURL");
+                if (text && url) {
+                    printf("[%d] %s\n    %s\n\n", ++count, text->valuestring, url->valuestring);
+                }
+            }
+        } else {
+            cJSON *text = cJSON_GetObjectItem(item, "Text");
+            cJSON *url = cJSON_GetObjectItem(item, "FirstURL");
+            if (text && url) {
+                printf("[%d] %s\n    %s\n\n", ++count, text->valuestring, url->valuestring);
+            }
+        }
+    }
+    if (count == 0) {
+        printf("No results found.\n");
+    }
+}
+
+int main(int argc, char *argv[]) {
+    char *query = argv[1];
     cJSON *result = NULL;
 
     int status = api_search_duckduckgo(query, &result);
     if(status == 0 && result != NULL) {
-        char *json_string = cJSON_Print(result);
-        printf("Search Results: %s\n", json_string);
-        free(json_string);
+        print_duckduckgo_results(result);
         cJSON_Delete(result);
     } else {
         fprintf(stderr, "Search failed or returned no results\n");
