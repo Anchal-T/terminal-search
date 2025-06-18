@@ -1,6 +1,6 @@
-#ifndef HTML_PARSER_H
-#define HTML_PARSER_H
+#ifndef HTML_PARSER
+#define HTML_PARSER
 
 char *html_parse(const char *html);
 
-#endif // HTML_PARSER_H
+#endif // HTML_PARSER
