@@ -14,19 +14,19 @@ char *parse_webpage(const char *url) {
     return parsed_content; // Return parsed HTML content or NULL if parsing failed
 }
 
-int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        fprintf(stderr, "Usage: %s <URL>\n", argv[0]);
-        return EXIT_FAILURE;
-    }
+// int main(int argc, char *argv[]) {
+//     if (argc < 2) {
+//         fprintf(stderr, "Usage: %s <URL>\n", argv[0]);
+//         return EXIT_FAILURE;
+//     }
 
-    char *content = parse_webpage(argv[1]);
-    if (content) {
-        printf("Parsed content:\n%s\n", content);
-        free(content);
-    } else {
-        fprintf(stderr, "Failed to parse webpage.\n");
-    }
+//     char *content = parse_webpage(argv[1]);
+//     if (content) {
+//         printf("Parsed content:\n%s\n", content);
+//         free(content);
+//     } else {
+//         fprintf(stderr, "Failed to parse webpage.\n");
+//     }
 
-    return 0;
-}
+//     return 0;
+// }

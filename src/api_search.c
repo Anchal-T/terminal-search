@@ -65,17 +65,17 @@ void print_duckduckgo_results(cJSON *json) {
     }
 }
 
-int main(int argc, char *argv[]) {
-    char *query = argv[1];
-    cJSON *result = NULL;
+// int main(int argc, char *argv[]) {
+//     char *query = argv[1];
+//     cJSON *result = NULL;
 
-    int status = api_search_duckduckgo(query, &result);
-    if(status == 0 && result != NULL) {
-        print_duckduckgo_results(result);
-        cJSON_Delete(result);
-    } else {
-        fprintf(stderr, "Search failed or returned no results\n");
-    }
+//     int status = api_search_duckduckgo(query, &result);
+//     if(status == 0 && result != NULL) {
+//         print_duckduckgo_results(result);
+//         cJSON_Delete(result);
+//     } else {
+//         fprintf(stderr, "Search failed or returned no results\n");
+//     }
 
-    return 0;
-}
+//     return 0;
+// }
