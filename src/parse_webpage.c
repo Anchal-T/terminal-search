@@ -6,7 +6,7 @@
 
 char *parse_webpage(const char *url) {
     HTTPResponse response = {NULL, 0};
-    if (http_search(url, NULL, &response) != 0) {
+    if (http_search(url, "", &response) != 0) {
         return NULL; // Failed to fetch webpage
     }
     char *parsed_content = html_parse(response.data);
