@@ -26,14 +26,14 @@ char *html_parse(const char *html_content) {
     return result;
 }
 
-int main(){
-    const char *html = "<html><body><h1>Hello, World!</h1></body></html>";
-    char *text = html_parse(html);
-    if(text) {
-        printf("Parsed text: %s\n", text);
-        free(text);
-    } else {
-        printf("Failed to parse HTML.\n");
-    }
-    return 0;
-}
+// int main(){
+//     const char *html = "<html><body><h1>Hello, World!</h1></body></html>";
+//     char *text = html_parse(html);
+//     if(text) {
+//         printf("Parsed text: %s\n", text);
+//         free(text);
+//     } else {
+//         printf("Failed to parse HTML.\n");
+//     }
+//     return 0;
+// }
