@@ -120,3 +120,24 @@ static void append_to_output(char **output, size_t *size, size_t *capacity, cons
     *size += text_len;
     (*output)[*size] = '\0'; // Null-terminate the string
 }
+
+static char *clean_text(const char *text) {
+    if(text == NULL) return NULL;
+
+    size_t len = strlen(text);
+    char *cleaned = malloc(len + 1);
+    if(cleaned == NULL) {
+        fprintf(stderr, "Failed to allocate memory for cleaned text\n");
+        return NULL; // Handle memory allocation failure
+    }
+
+    size_t j = 0;
+    for(size_t i = 0; i < len; i++) {
+        if(text[i] != '\n' && text[i] != '\r') {
+            cleaned[j++] = text[i];
+        }
+    }
+    cleaned[j] = '\0';
+    return cleaned;
+}
+
