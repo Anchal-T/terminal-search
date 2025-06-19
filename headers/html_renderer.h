@@ -2,6 +2,9 @@
 #define HTML_RENDERER_H
 
 #include <stddef.h>
+#include <libxml/HTMLparser.h>
+#include <libxml/parser.h>
+
 
 char *html_renderer(const char *html_content);
 static void render_node(xmlNode *node, char **output, size_t *size, size_t *capacity);
