@@ -15,13 +15,13 @@
 
 static void render_node(xmlNode *node, char **output, size_t *size, size_t *capacity){
     for(xmlNode *cur = node; cur; cur = cur->next) {
-        if (cur_node->type == XML_ELEMENT_NODE) {
+        if (cur->type == XML_ELEMENT_NODE) {
         const char *name = (const char *)cur->name;
         if(strcasecmp(name, "style") == 0 ||
            strcasecmp(name, "script") == 0 ||
            strcasecmp(name, "head") == 0 ||
-           strcasecmp(name, "meta") == 0) ||
-           strcasecmp(name, "link") == 0{
+           strcasecmp(name, "meta") == 0 ||
+           strcasecmp(name, "link") == 0) {
            continue; // Skip these elements
         }
 
@@ -63,5 +63,44 @@ static void render_node(xmlNode *node, char **output, size_t *size, size_t *capa
         append_to_output(output, size, capacity, cleaned);
         free(cleaned);
     }
-}
+
+    render_node(cur->children, output, size, capacity);
+    if (cur->type == XML_ELEMENT_NODE) {
+        const char *name = (const char *)cur->name;
+                if(strcasecmp(name, "title") == 0){
+                    append_to_output(output, size, capacity, " === " RESET "\n");
+                }
+                else if(strcasecmp(name, "h1") == 0){
+                    append_to_output(output, size, capacity, " === " RESET "\n");
+                }
+                else if(strcasecmp(name, "h2") == 0){
+                    append_to_output(output, size, capacity, " === " RESET "\n");
+                }
+                else if(strcasecmp(name, "h3") == 0){
+                    append_to_output(output, size, capacity, " === " RESET "\n");
+                }
+                else if(strcasecmp(name, "h4") == 0){
+                    append_to_output(output, size, capacity, " === " RESET "\n");
+                }
+                else if(strcasecmp(name, "h5") == 0){
+                    append_to_output(output, size, capacity, " === " RESET "\n");
+                }
+                else if(strcasecmp(name, "h6") == 0){
+                    append_to_output(output, size, capacity, " === " RESET "\n");
+                }
+                else if(strcasecmp(name, "p") == 0){
+                    append_to_output(output, size, capacity, " === " RESET "\n");
+                }
+                else if(strcasecmp(name, "a") == 0){
+                    append_to_output(output, size, capacity, " === " RESET "\n");
+                }
+                else if(strcasecmp(name, "ul") == 0 || strcasecmp(name, "ol") == 0){
+                    append_to_output(output, size, capacity, " === " RESET "\n");
+                }
+                else if(strcasecmp(name, "li") == 0){
+                    append_to_output(output, size, capacity, " === " RESET "\n");
+                }
+            }
+            }
+        }
 }
