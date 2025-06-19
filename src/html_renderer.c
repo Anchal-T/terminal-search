@@ -15,46 +15,83 @@
 
 #define INITIAL_BUFFER_CAPACITY 1024
 
+// Hash values for HTML elements
+#define HASH_TITLE 1
+#define HASH_H1 2
+#define HASH_H2 3
+#define HASH_H3 4
+#define HASH_P 5
+#define HASH_A 6
+#define HASH_LI 7
+#define HASH_BR 8
+#define HASH_STYLE 9
+#define HASH_SCRIPT 10
+#define HASH_HEAD 11
+#define HASH_META 12
+#define HASH_LINK 13
+#define HASH_NOSCRIPT 14
+
+static int get_element_hash(const char *name) {
+    if(strcasecmp(name, "title") == 0) return HASH_TITLE;
+    if(strcasecmp(name, "h1") == 0) return HASH_H1;
+    if(strcasecmp(name, "h2") == 0) return HASH_H2;
+    if(strcasecmp(name, "h3") == 0) return HASH_H3;
+    if(strcasecmp(name, "p") == 0) return HASH_P;
+    if(strcasecmp(name, "a") == 0) return HASH_A;
+    if(strcasecmp(name, "li") == 0) return HASH_LI;
+    if(strcasecmp(name, "br") == 0) return HASH_BR;
+    if(strcasecmp(name, "style") == 0) return HASH_STYLE;
+    if(strcasecmp(name, "script") == 0) return HASH_SCRIPT;
+    if(strcasecmp(name, "head") == 0) return HASH_HEAD;
+    if(strcasecmp(name, "meta") == 0) return HASH_META;
+    if(strcasecmp(name, "link") == 0) return HASH_LINK;
+    if(strcasecmp(name, "noscript") == 0) return HASH_NOSCRIPT;
+    return 0; // Unknown element
+}
+
 static void render_node(xmlNode *node, char **output, size_t *size, size_t *capacity){
     for(xmlNode *cur = node; cur; cur = cur->next) {
         if (cur->type == XML_ELEMENT_NODE) {
             const char *name = (const char *)cur->name;
+            int element_hash = get_element_hash(name);
             
             // Skip non-content elements
-            if(strcasecmp(name, "style") == 0 ||
-               strcasecmp(name, "script") == 0 ||
-               strcasecmp(name, "head") == 0 ||
-               strcasecmp(name, "meta") == 0 ||
-               strcasecmp(name, "link") == 0 ||
-               strcasecmp(name, "noscript") == 0) {
-               continue;
+            switch(element_hash) {
+                case HASH_STYLE:
+                case HASH_SCRIPT:
+                case HASH_HEAD:
+                case HASH_META:
+                case HASH_LINK:
+                case HASH_NOSCRIPT:
+                    continue;
             }
 
             // Opening tags
-            if(strcasecmp(name, "title") == 0){
-                append_to_output(output, size, capacity, "\n" BOLD CYAN "--- ");
-            }
-            else if(strcasecmp(name, "h1") == 0){
-                append_to_output(output, size, capacity, "\n\n" BOLD YELLOW);
-            }
-            else if(strcasecmp(name, "h2") == 0){
-                append_to_output(output, size, capacity, "\n\n" BOLD GREEN);
-            }
-            else if(strcasecmp(name, "h3") == 0){
-                append_to_output(output, size, capacity, "\n\n" BOLD);
-            }
-            else if(strcasecmp(name, "p") == 0){
-                append_to_output(output, size, capacity, "\n");
-            }
-            else if(strcasecmp(name, "a") == 0){
-                append_to_output(output, size, capacity, BLUE "[");
-            }
-            else if(strcasecmp(name, "li") == 0){
-                append_to_output(output, size, capacity, "\n  • ");
-            }
-            else if(strcasecmp(name, "br") == 0){
-                append_to_output(output, size, capacity, "\n");
-                continue; // br is self-closing
+            switch(element_hash) {
+                case HASH_TITLE:
+                    append_to_output(output, size, capacity, "\n" BOLD CYAN "--- ");
+                    break;
+                case HASH_H1:
+                    append_to_output(output, size, capacity, "\n\n" BOLD YELLOW);
+                    break;
+                case HASH_H2:
+                    append_to_output(output, size, capacity, "\n\n" BOLD GREEN);
+                    break;
+                case HASH_H3:
+                    append_to_output(output, size, capacity, "\n\n" BOLD);
+                    break;
+                case HASH_P:
+                    append_to_output(output, size, capacity, "\n");
+                    break;
+                case HASH_A:
+                    append_to_output(output, size, capacity, BLUE "[");
+                    break;
+                case HASH_LI:
+                    append_to_output(output, size, capacity, "\n  • ");
+                    break;
+                case HASH_BR:
+                    append_to_output(output, size, capacity, "\n");
+                    continue; // br is self-closing
             }
         }
         else if(cur->type == XML_TEXT_NODE) {
@@ -74,18 +111,23 @@ static void render_node(xmlNode *node, char **output, size_t *size, size_t *capa
         // Closing tags
         if (cur->type == XML_ELEMENT_NODE) {
             const char *name = (const char *)cur->name;
+            int element_hash = get_element_hash(name);
             
-            if(strcasecmp(name, "title") == 0){
-                append_to_output(output, size, capacity, " ---" RESET "\n");
-            }
-            else if(strcasecmp(name, "h1") == 0 || strcasecmp(name, "h2") == 0 || strcasecmp(name, "h3") == 0){
-                append_to_output(output, size, capacity, RESET "\n");
-            }
-            else if(strcasecmp(name, "p") == 0){
-                append_to_output(output, size, capacity, "\n");
-            }
-            else if(strcasecmp(name, "a") == 0){
-                append_to_output(output, size, capacity, "]" RESET);
+            switch(element_hash) {
+                case HASH_TITLE:
+                    append_to_output(output, size, capacity, " ---" RESET "\n");
+                    break;
+                case HASH_H1:
+                case HASH_H2:
+                case HASH_H3:
+                    append_to_output(output, size, capacity, RESET "\n");
+                    break;
+                case HASH_P:
+                    append_to_output(output, size, capacity, "\n");
+                    break;
+                case HASH_A:
+                    append_to_output(output, size, capacity, "]" RESET);
+                    break;
             }
         }
     }
