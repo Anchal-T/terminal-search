@@ -3,13 +3,14 @@
 #include <string.h>
 #include "../headers/html_parser.h"
 #include "../headers/http_client.h"
+#include "../headers/html_renderer.h"
 
 char *parse_webpage(const char *url) {
     HTTPResponse response = {NULL, 0};
     if (http_search(url, "", &response) != 0) {
         return NULL; // Failed to fetch webpage
     }
-    char *parsed_content = html_parse(response.data);
+    char *parsed_content = html_renderer(response.data);
     http_response_free(&response);
     return parsed_content; // Return parsed HTML content or NULL if parsing failed
 }
@@ -22,7 +23,7 @@ int main(int argc, char *argv[]) {
 
     char *content = parse_webpage(argv[1]);
     if (content) {
-        printf("Parsed content:\n%s\n", content);
+        printf("%s", content);
         free(content);
     } else {
         fprintf(stderr, "Failed to parse webpage.\n");
