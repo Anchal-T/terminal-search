@@ -104,3 +104,19 @@ static void render_node(xmlNode *node, char **output, size_t *size, size_t *capa
             }
         }
 }
+
+static void append_to_output(char **output, size_t *size, size_t *capacity, const char *text) {
+    size_t text_len = strlen(text);
+    while(*size + text_len +1 > *capacity) {
+        *capacity *= 2;
+        char *new_output = realloc(*output, *capacity);
+        if(new_output == NULL) {
+            fprintf(stderr, "Failed to allocate memory for output\n");
+            return; // Handle memory allocation failure
+        }
+        *output = new_output;
+    }
+    memcpy(*output + *size, text, text_len);
+    *size += text_len;
+    (*output)[*size] = '\0'; // Null-terminate the string
+}
