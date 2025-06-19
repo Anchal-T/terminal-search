@@ -13,6 +13,8 @@
 #define YELLOW "\033[33m"
 #define CYAN "\033[36m"
 
+#define INITIAL_BUFFER_CAPACITY 1024
+
 static void render_node(xmlNode *node, char **output, size_t *size, size_t *capacity){
     for(xmlNode *cur = node; cur; cur = cur->next) {
         if (cur->type == XML_ELEMENT_NODE) {
@@ -141,3 +143,36 @@ static char *clean_text(const char *text) {
     return cleaned;
 }
 
+char *html_renderer(const char *html_content) {
+    if(html_content == NULL) return NULL;
+
+    htmlDocPtr doc = htmlReadMemory(html_content, strlen(html_content), NULL, NULL, HTML_PARSE_NOERROR | HTML_PARSE_NOWARNING);
+    if(doc == NULL) {
+        fprintf(stderr, "Failed to parse HTML content\n");
+        return NULL; // Handle parsing failure
+    }
+
+    xmlNode *root = xmlDocGetRootElement(doc);
+    if(root == NULL) {
+        xmlFreeDoc(doc);
+        fprintf(stderr, "No root element found in HTML document\n");
+        return NULL; // Handle missing root element
+    }
+
+    char *output = malloc(INITIAL_BUFFER_CAPACITY);
+    if(output == NULL) {
+        xmlFreeDoc(doc);
+        fprintf(stderr, "Failed to allocate memory for output\n");
+        return NULL; // Handle memory allocation failure
+    }
+    size_t size = 0;
+    size_t capacity = INITIAL_BUFFER_CAPACITY;
+    output[0] = '\0';
+
+    render_node(root, &output, &size, &capacity);
+
+    xmlFreeDoc(doc);
+    xmlCleanupParser();
+
+    return output; // Return the rendered HTML content
+}
