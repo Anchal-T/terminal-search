@@ -19,89 +19,73 @@ static void render_node(xmlNode *node, char **output, size_t *size, size_t *capa
     for(xmlNode *cur = node; cur; cur = cur->next) {
         if (cur->type == XML_ELEMENT_NODE) {
             const char *name = (const char *)cur->name;
+            
+            // Skip non-content elements
             if(strcasecmp(name, "style") == 0 ||
                strcasecmp(name, "script") == 0 ||
                strcasecmp(name, "head") == 0 ||
                strcasecmp(name, "meta") == 0 ||
-               strcasecmp(name, "link") == 0) {
-               continue; // Skip these elements
+               strcasecmp(name, "link") == 0 ||
+               strcasecmp(name, "noscript") == 0) {
+               continue;
             }
 
+            // Opening tags
             if(strcasecmp(name, "title") == 0){
-                append_to_output(output, size, capacity, BOLD CYAN "=== ");
+                append_to_output(output, size, capacity, "\n" BOLD CYAN "--- ");
             }
             else if(strcasecmp(name, "h1") == 0){
-                append_to_output(output, size, capacity, BOLD BLUE);
+                append_to_output(output, size, capacity, "\n\n" BOLD YELLOW);
             }
             else if(strcasecmp(name, "h2") == 0){
-                append_to_output(output, size, capacity, BOLD GREEN);
+                append_to_output(output, size, capacity, "\n\n" BOLD GREEN);
             }
             else if(strcasecmp(name, "h3") == 0){
-                append_to_output(output, size, capacity, BOLD YELLOW);
+                append_to_output(output, size, capacity, "\n\n" BOLD);
             }
             else if(strcasecmp(name, "p") == 0){
                 append_to_output(output, size, capacity, "\n");
             }
             else if(strcasecmp(name, "a") == 0){
-                append_to_output(output, size, capacity, BLUE);
-            }
-            else if(strcasecmp(name, "ul") == 0 || strcasecmp(name, "ol") == 0){
-                append_to_output(output, size, capacity, RESET);
+                append_to_output(output, size, capacity, BLUE "[");
             }
             else if(strcasecmp(name, "li") == 0){
-                append_to_output(output, size, capacity, GREEN);
-            }
-            else if(strcasecmp(name, "img") == 0){
-                append_to_output(output, size, capacity, YELLOW);
+                append_to_output(output, size, capacity, "\n  • ");
             }
             else if(strcasecmp(name, "br") == 0){
                 append_to_output(output, size, capacity, "\n");
-                continue;
+                continue; // br is self-closing
             }
         }
         else if(cur->type == XML_TEXT_NODE) {
             const char *content = (const char *)cur->content;
-            char *cleaned = clean_text(content);
-            append_to_output(output, size, capacity, cleaned);
-            free(cleaned);
+            if(content) {
+                char *cleaned = clean_text(content);
+                if(cleaned && strlen(cleaned) > 0) {
+                    append_to_output(output, size, capacity, cleaned);
+                }
+                free(cleaned);
+            }
         }
 
+        // Recursively render children
         render_node(cur->children, output, size, capacity);
         
+        // Closing tags
         if (cur->type == XML_ELEMENT_NODE) {
             const char *name = (const char *)cur->name;
+            
             if(strcasecmp(name, "title") == 0){
-                append_to_output(output, size, capacity, " === " RESET "\n");
+                append_to_output(output, size, capacity, " ---" RESET "\n");
             }
-            else if(strcasecmp(name, "h1") == 0){
-                append_to_output(output, size, capacity, " === " RESET "\n");
-            }
-            else if(strcasecmp(name, "h2") == 0){
-                append_to_output(output, size, capacity, " === " RESET "\n");
-            }
-            else if(strcasecmp(name, "h3") == 0){
-                append_to_output(output, size, capacity, " === " RESET "\n");
-            }
-            else if(strcasecmp(name, "h4") == 0){
-                append_to_output(output, size, capacity, " === " RESET "\n");
-            }
-            else if(strcasecmp(name, "h5") == 0){
-                append_to_output(output, size, capacity, " === " RESET "\n");
-            }
-            else if(strcasecmp(name, "h6") == 0){
-                append_to_output(output, size, capacity, " === " RESET "\n");
+            else if(strcasecmp(name, "h1") == 0 || strcasecmp(name, "h2") == 0 || strcasecmp(name, "h3") == 0){
+                append_to_output(output, size, capacity, RESET "\n");
             }
             else if(strcasecmp(name, "p") == 0){
-                append_to_output(output, size, capacity, " === " RESET "\n");
+                append_to_output(output, size, capacity, "\n");
             }
             else if(strcasecmp(name, "a") == 0){
-                append_to_output(output, size, capacity, " === " RESET "\n");
-            }
-            else if(strcasecmp(name, "ul") == 0 || strcasecmp(name, "ol") == 0){
-                append_to_output(output, size, capacity, " === " RESET "\n");
-            }
-            else if(strcasecmp(name, "li") == 0){
-                append_to_output(output, size, capacity, " === " RESET "\n");
+                append_to_output(output, size, capacity, "]" RESET);
             }
         }
     }
@@ -109,18 +93,18 @@ static void render_node(xmlNode *node, char **output, size_t *size, size_t *capa
 
 static void append_to_output(char **output, size_t *size, size_t *capacity, const char *text) {
     size_t text_len = strlen(text);
-    while(*size + text_len +1 > *capacity) {
+    while(*size + text_len + 1 > *capacity) {
         *capacity *= 2;
         char *new_output = realloc(*output, *capacity);
         if(new_output == NULL) {
             fprintf(stderr, "Failed to allocate memory for output\n");
-            return; // Handle memory allocation failure
+            return;
         }
         *output = new_output;
     }
     memcpy(*output + *size, text, text_len);
     *size += text_len;
-    (*output)[*size] = '\0'; // Null-terminate the string
+    (*output)[*size] = '\0';
 }
 
 static char *clean_text(const char *text) {
@@ -130,15 +114,30 @@ static char *clean_text(const char *text) {
     char *cleaned = malloc(len + 1);
     if(cleaned == NULL) {
         fprintf(stderr, "Failed to allocate memory for cleaned text\n");
-        return NULL; // Handle memory allocation failure
+        return NULL;
     }
 
     size_t j = 0;
+    int in_whitespace = 0;
+    
+    // Clean and normalize whitespace
     for(size_t i = 0; i < len; i++) {
-        if(text[i] != '\n' && text[i] != '\r') {
+        if(text[i] == ' ' || text[i] == '\t' || text[i] == '\n' || text[i] == '\r') {
+            if(!in_whitespace && j > 0) {
+                cleaned[j++] = ' ';
+                in_whitespace = 1;
+            }
+        } else {
             cleaned[j++] = text[i];
+            in_whitespace = 0;
         }
     }
+    
+    // Remove trailing whitespace
+    while(j > 0 && cleaned[j-1] == ' ') {
+        j--;
+    }
+    
     cleaned[j] = '\0';
     return cleaned;
 }
@@ -146,24 +145,25 @@ static char *clean_text(const char *text) {
 char *html_renderer(const char *html_content) {
     if(html_content == NULL) return NULL;
 
-    htmlDocPtr doc = htmlReadMemory(html_content, strlen(html_content), NULL, NULL, HTML_PARSE_NOERROR | HTML_PARSE_NOWARNING);
+    htmlDocPtr doc = htmlReadMemory(html_content, strlen(html_content), NULL, NULL, 
+                                    HTML_PARSE_RECOVER | HTML_PARSE_NOERROR | HTML_PARSE_NOWARNING);
     if(doc == NULL) {
         fprintf(stderr, "Failed to parse HTML content\n");
-        return NULL; // Handle parsing failure
+        return NULL;
     }
 
     xmlNode *root = xmlDocGetRootElement(doc);
     if(root == NULL) {
         xmlFreeDoc(doc);
         fprintf(stderr, "No root element found in HTML document\n");
-        return NULL; // Handle missing root element
+        return NULL;
     }
 
     char *output = malloc(INITIAL_BUFFER_CAPACITY);
     if(output == NULL) {
         xmlFreeDoc(doc);
         fprintf(stderr, "Failed to allocate memory for output\n");
-        return NULL; // Handle memory allocation failure
+        return NULL;
     }
     size_t size = 0;
     size_t capacity = INITIAL_BUFFER_CAPACITY;
@@ -174,5 +174,5 @@ char *html_renderer(const char *html_content) {
     xmlFreeDoc(doc);
     xmlCleanupParser();
 
-    return output; // Return the rendered HTML content
+    return output;
 }
