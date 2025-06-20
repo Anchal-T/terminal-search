@@ -154,3 +154,58 @@ void open_url(const char *url) {
     }
 }
 
+SearchState* parse_duckduckgo_results(cJSON *json){
+    SearchState *state = malloc(sizeof(SearchState));
+    if(!state) return NULL;
+
+    state->results = NULL;
+    state->count = 0;
+    state->selected = 0;
+    state->scroll_offset = 0;
+
+    cJSON *topics = cJSON_GetObjectItem(json, "RelatedTopics");
+    if(!topics || !cJSON_IsArray(topics)){
+        free(state);
+        return NULL;
+    }
+
+    int index = 0;
+    int total_count = 0;
+    for (cJSON *item = topics->child; item && index < total_count; item = item->next) {
+        cJSON *subtopics = cJSON_GetObjectItem(item, "Topics");
+        if (subtopics && cJSON_IsArray(subtopics)) {
+            for (cJSON *subitem = subtopics->child; subitem && index < total_count; subitem = subitem->next) {
+                cJSON *text = cJSON_GetObjectItem(subitem, "Text");
+                cJSON *url = cJSON_GetObjectItem(subitem, "FirstURL");
+                if (text && url) {
+                    state->results[index].title = strdup(text->valuestring);
+                    state->results[index].url = strdup(url->valuestring);
+                    state->results[index].snippet = NULL;
+                    index++;
+                }
+            }
+        } else {
+            cJSON *text = cJSON_GetObjectItem(item, "Text");
+            cJSON *url = cJSON_GetObjectItem(item, "FirstURL");
+            if (text && url) {
+                state->results[index].title = strdup(text->valuestring);
+                state->results[index].url = strdup(url->valuestring);
+                state->results[index].snippet = NULL;
+                index++;
+            }
+        }
+    } 
+    state->count = index;
+    return state;
+}
+
+void free_search_state(SearchState *state) {
+    if (!state) return;
+    for (int i = 0; i < state->count; i++) {
+        free(state->results[i].title);
+        free(state->results[i].url);
+        free(state->results[i].snippet);
+    }
+    free(state->results);
+    free(state);
+}
