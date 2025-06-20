@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include "../headers/terminal_ui.h"
+#include "../headers/http_client.h"
+#include "../headers/html_renderer.h"
 
 #define TITLE_COLOR 1
 #define URL_COLOR 2
@@ -123,7 +125,43 @@ int handle_input(SearchState *state){
         case '\r':
         case KEY_ENTER:
             if (state->count > 0) {
-                open_url(state->results[state->selected].url);
+                // Temporarily exit ncurses to show options
+                def_prog_mode();
+                endwin();
+                
+                printf("\nSelected: %s\n", state->results[state->selected].title);
+                printf("URL: %s\n", state->results[state->selected].url);
+                printf("\nChoose an option:\n");
+                printf("1. Open in browser\n");
+                printf("2. Display content in terminal\n");
+                printf("3. Return to search results\n");
+                printf("Enter choice (1-3): ");
+                
+                int choice;
+                if (scanf("%d", &choice) == 1) {
+                    getchar(); // consume newline
+                    
+                    switch(choice) {
+                        case 1:
+                            // Resume ncurses briefly to show status
+                            reset_prog_mode();
+                            refresh();
+                            open_url(state->results[state->selected].url);
+                            break;
+                        case 2:
+                            display_webpage_content(state->results[state->selected].url);
+                            break;
+                        case 3:
+                        default:
+                            break;
+                    }
+                } else {
+                    getchar(); // consume invalid input
+                }
+                
+                // Resume ncurses mode
+                reset_prog_mode();
+                refresh();
             }
             break;
             
@@ -234,4 +272,40 @@ void free_search_state(SearchState *state) {
     }
     free(state->results);
     free(state);
+}
+
+void display_webpage_content(const char *url) {
+    if (!url) return;
+    
+    // Temporarily exit ncurses mode
+    def_prog_mode();
+    endwin();
+    
+    printf("\n");
+    printf("==================================================\n");
+    printf("Fetching webpage: %s\n", url);
+    printf("==================================================\n");
+    
+    // Use your existing HTTP client and HTML renderer
+    HTTPResponse response = {NULL, 0};
+    if (http_search(url, "", &response) == 0) {
+        char *rendered_content = html_renderer(response.data);
+        if (rendered_content) {
+            printf("%s\n", rendered_content);
+            free(rendered_content);
+        } else {
+            printf("Failed to render webpage content.\n");
+        }
+        http_response_free(&response);
+    } else {
+        printf("Failed to fetch webpage.\n");
+    }
+    
+    printf("\n==================================================\n");
+    printf("Press Enter to return to search results...");
+    getchar();
+    
+    // Resume ncurses mode
+    reset_prog_mode();
+    refresh();
 }

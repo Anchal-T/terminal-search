@@ -11,4 +11,4 @@ static void render_node(xmlNode *node, char **output, size_t *size, size_t *capa
 static void append_to_output(char **output, size_t *size, size_t *capacity, const char *text);
 static char *clean_text(const char *text);
 
-#endif
+#endif // HTML_RENDERER_H

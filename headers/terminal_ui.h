@@ -24,5 +24,5 @@ int handle_input(SearchState *state);
 void open_url(const char *url);
 SearchState* parse_duckduckgo_results(cJSON *json);
 void free_search_state(SearchState *state);
-
+void display_webpage_content(const char *url);
 #endif // TERMINAL_UI_H
