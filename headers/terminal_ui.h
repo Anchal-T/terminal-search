@@ -23,6 +23,9 @@ void display_search_results(SearchState *state, const char *query);
 int handle_input(SearchState *state);
 void open_url(const char *url);
 SearchState* parse_duckduckgo_results(cJSON *json);
+SearchState* parse_searx_results(cJSON *json);
+SearchState* parse_google_results(cJSON *json);  // Add this line
 void free_search_state(SearchState *state);
 void display_webpage_content(const char *url);
+
 #endif // TERMINAL_UI_H

@@ -4,3 +4,4 @@ html_parser
 a.out
 parse_webpage
 terminal_search
+.env

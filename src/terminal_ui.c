@@ -227,6 +227,107 @@ SearchState* parse_duckduckgo_results(cJSON *json){
     return state;
 }
 
+SearchState* parse_searx_results(cJSON *json) {
+    SearchState *state = malloc(sizeof(SearchState));
+    if(!state) return NULL;
+
+    state->results = NULL;
+    state->count = 0;
+    state->selected = 0;
+    state->scroll_offset = 0;
+
+    cJSON *results = cJSON_GetObjectItem(json, "results");
+    if(!results || !cJSON_IsArray(results)){
+        return state; // Return empty state
+    }
+
+    int total_count = cJSON_GetArraySize(results);
+    if (total_count == 0) return state;
+
+    state->results = malloc(sizeof(SearchResult) * total_count);
+    if (!state->results) {
+        free(state);
+        return NULL;
+    }
+
+    int valid_results = 0;
+    for (int i = 0; i < total_count; i++) {
+        cJSON *item = cJSON_GetArrayItem(results, i);
+        cJSON *title = cJSON_GetObjectItem(item, "title");
+        cJSON *url = cJSON_GetObjectItem(item, "url");
+        cJSON *content = cJSON_GetObjectItem(item, "content");
+
+        if (title && url && title->valuestring && url->valuestring) {
+            state->results[valid_results].title = strdup(title->valuestring);
+            state->results[valid_results].url = strdup(url->valuestring);
+            state->results[valid_results].snippet = content && content->valuestring ? 
+                                                   strdup(content->valuestring) : NULL;
+            valid_results++;
+        }
+    }
+
+    state->count = valid_results;
+    return state;
+}
+
+SearchState* parse_google_results(cJSON *json) {
+    SearchState *state = malloc(sizeof(SearchState));
+    if(!state) return NULL;
+
+    state->results = NULL;
+    state->count = 0;
+    state->selected = 0;
+    state->scroll_offset = 0;
+
+    printf("Debug: Looking for 'items' in JSON\n");
+    cJSON *items = cJSON_GetObjectItem(json, "items");
+    if(!items) {
+        printf("Debug: No 'items' found, checking for error\n");
+        cJSON *error = cJSON_GetObjectItem(json, "error");
+        if (error) {
+            cJSON *message = cJSON_GetObjectItem(error, "message");
+            if (message && message->valuestring) {
+                printf("Google API Error: %s\n", message->valuestring);
+            }
+        }
+        return state; // Return empty state
+    }
+    
+    if (!cJSON_IsArray(items)) {
+        printf("Debug: 'items' is not an array\n");
+        return state; // Return empty state
+    }
+
+    int total_count = cJSON_GetArraySize(items);
+    printf("Debug: Found %d items in response\n", total_count);
+    if (total_count == 0) return state;
+
+    state->results = malloc(sizeof(SearchResult) * total_count);
+    if (!state->results) {
+        free(state);
+        return NULL;
+    }
+
+    int valid_results = 0;
+    for (int i = 0; i < total_count; i++) {
+        cJSON *item = cJSON_GetArrayItem(items, i);
+        cJSON *title = cJSON_GetObjectItem(item, "title");
+        cJSON *link = cJSON_GetObjectItem(item, "link");
+        cJSON *snippet = cJSON_GetObjectItem(item, "snippet");
+
+        if (title && link && title->valuestring && link->valuestring) {
+            state->results[valid_results].title = strdup(title->valuestring);
+            state->results[valid_results].url = strdup(link->valuestring);
+            state->results[valid_results].snippet = snippet && snippet->valuestring ? 
+                                                   strdup(snippet->valuestring) : NULL;
+            valid_results++;
+        }
+    }
+
+    state->count = valid_results;
+    return state;
+}
+
 void free_search_state(SearchState *state) {
     if (!state) return;
     for (int i = 0; i < state->count; i++) {
@@ -245,24 +346,14 @@ void display_webpage_content(const char *url) {
     def_prog_mode();
     endwin();
     
-    // Check if this is a DuckDuckGo redirect URL
-    if (strstr(url, "duckduckgo.com/c/") != NULL) {
-        printf("Error: This is a DuckDuckGo category page, not a direct webpage.\n");
-        printf("DuckDuckGo search results contain category links, not actual webpages.\n");
-        printf("Try searching for specific websites or topics to get real webpage URLs.\n");
-        printf("\nPress Enter to return to search results...");
-        getchar();
-        reset_prog_mode();
-        refresh();
-        return;
-    }
+    printf("Fetching: %s\n", url);
     
     // Use your existing HTTP client and HTML renderer
     HTTPResponse response = {NULL, 0};
     if (http_search(url, "", &response) == 0) {
         char *rendered_content = html_renderer(response.data);
         if (rendered_content) {
-            printf("%s", rendered_content);
+            printf("%s\n", rendered_content);
             free(rendered_content);
         } else {
             printf("Failed to render webpage content.\n");
