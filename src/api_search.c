@@ -5,7 +5,6 @@
 #include "../headers/terminal_ui.h"
 #include <cjson/cJSON.h>
 
-
 #define DUCKDUCKGO_API "https://api.duckduckgo.com/?q=%s&format=json&no_redirect=1&no_html=1&skip_disambig=1"
 
 int api_search_duckduckgo(const char *query, cJSON **result) {
@@ -28,75 +27,50 @@ int api_search_duckduckgo(const char *query, cJSON **result) {
         return -1;
     }
 
-    *result = json; // Pass parsed JSON back to caller
-
+    *result = json;
     http_response_free(&response);
     return 0;
 }
 
-void print_duckduckgo_results(cJSON *json) {
-    cJSON *topics = cJSON_GetObjectItem(json, "RelatedTopics");
-    if (!topics || !cJSON_IsArray(topics)) {
-        printf("No results found.\n");
-        return;
-    }
-
-    int count = 0;
-    for (cJSON *item = topics->child; item; item = item->next) {
-        // Some items may be "topics" with a "Topics" array inside
-        cJSON *subtopics = cJSON_GetObjectItem(item, "Topics");
-        if (subtopics && cJSON_IsArray(subtopics)) {
-            for (cJSON *subitem = subtopics->child; subitem; subitem = subitem->next) {
-                cJSON *text = cJSON_GetObjectItem(subitem, "Text");
-                cJSON *url = cJSON_GetObjectItem(subitem, "FirstURL");
-                if (text && url) {
-                    printf("[%d] %s\n    %s\n\n", ++count, text->valuestring, url->valuestring);
-                }
-            }
-        } else {
-            cJSON *text = cJSON_GetObjectItem(item, "Text");
-            cJSON *url = cJSON_GetObjectItem(item, "FirstURL");
-            if (text && url) {
-                printf("[%d] %s\n    %s\n\n", ++count, text->valuestring, url->valuestring);
-            }
-        }
-    }
-    if (count == 0) {
-        printf("No results found.\n");
-    }
-}
-
 int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Usage: %s <search query>\n", argv[0]);
+        return 1;
+    }
+    
     char *query = argv[1];
     cJSON *result = NULL;
 
+    // Perform search
     int status = api_search_duckduckgo(query, &result);
-    if(status == 0 && result != NULL) {
-        print_duckduckgo_results(result);
-        cJSON_Delete(result);
-    } else {
+    if(status != 0 || result == NULL) {
         fprintf(stderr, "Search failed or returned no results\n");
+        return 1;
     }
 
+    // Parse results to UI state
     SearchState *state = parse_duckduckgo_results(result);
-    if (state) {
-        display_results(state, query);
-        free_search_state(state);
-    } else {
-        fprintf(stderr, "Failed to parse search results\n");
+    if (!state || state->count == 0) {
+        printf("No results found for: %s\n", query);
+        cJSON_Delete(result);
+        return 1;
     }
 
+    // Initialize UI
     init_ui();
 
+    // Main UI loop
     while(1){
-        display_results(state, query);
+        display_search_results(state, query);  // Fixed function name
         if(handle_input(state)){
             break;
         }
     }
 
+    // Cleanup
     cleanup_ui();
     free_search_state(state);
     cJSON_Delete(result);
+    
     return 0;
 }
