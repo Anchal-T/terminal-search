@@ -7,7 +7,7 @@
 #include "../headers/env_loader.h"
 #include <cjson/cJSON.h>
 
-#define GOOGLE_API "https://www.googleapis.com/customsearch/v1?key=%s&cx=%s&q=%s&num=10"
+#define GOOGLE_API "https://www.googleapis.com/customsearch/v1?key=%s&cx=%s&q=%s&num=20"
 
 // Function prototype
 void url_encode(const char *src, char *dest, size_t dest_size);
