@@ -19,7 +19,7 @@ typedef struct{
 
 void init_ui();
 void cleanup_ui();
-void display_results(SearchState *state, const char *query);
+void display_search_results(SearchState *state, const char *query);
 int handle_input(SearchState *state);
 void open_url(const char *url);
 SearchState* parse_duckduckgo_results(cJSON *json);
