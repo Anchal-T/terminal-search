@@ -165,12 +165,37 @@ SearchState* parse_duckduckgo_results(cJSON *json){
 
     cJSON *topics = cJSON_GetObjectItem(json, "RelatedTopics");
     if(!topics || !cJSON_IsArray(topics)){
+        return state; // Return empty state instead of NULL
+    }
+
+    // Count total results first
+    int total_count = 0;
+    for (cJSON *item = topics->child; item; item = item->next) {
+        cJSON *subtopics = cJSON_GetObjectItem(item, "Topics");
+        if (subtopics && cJSON_IsArray(subtopics)) {
+            for (cJSON *subitem = subtopics->child; subitem; subitem = subitem->next) {
+                cJSON *text = cJSON_GetObjectItem(subitem, "Text");
+                cJSON *url = cJSON_GetObjectItem(subitem, "FirstURL");
+                if (text && url) total_count++;
+            }
+        } else {
+            cJSON *text = cJSON_GetObjectItem(item, "Text");
+            cJSON *url = cJSON_GetObjectItem(item, "FirstURL");
+            if (text && url) total_count++;
+        }
+    }
+
+    if (total_count == 0) return state;
+
+    // Allocate memory for results
+    state->results = malloc(sizeof(SearchResult) * total_count);
+    if (!state->results) {
         free(state);
         return NULL;
     }
 
+    // Parse and store results
     int index = 0;
-    int total_count = 0;
     for (cJSON *item = topics->child; item && index < total_count; item = item->next) {
         cJSON *subtopics = cJSON_GetObjectItem(item, "Topics");
         if (subtopics && cJSON_IsArray(subtopics)) {
@@ -194,7 +219,8 @@ SearchState* parse_duckduckgo_results(cJSON *json){
                 index++;
             }
         }
-    } 
+    }
+    
     state->count = index;
     return state;
 }
