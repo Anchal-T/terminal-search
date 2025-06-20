@@ -245,17 +245,24 @@ void display_webpage_content(const char *url) {
     def_prog_mode();
     endwin();
     
-    printf("\n");
-    printf("==================================================\n");
-    printf("Fetching webpage: %s\n", url);
-    printf("==================================================\n");
+    // Check if this is a DuckDuckGo redirect URL
+    if (strstr(url, "duckduckgo.com/c/") != NULL) {
+        printf("Error: This is a DuckDuckGo category page, not a direct webpage.\n");
+        printf("DuckDuckGo search results contain category links, not actual webpages.\n");
+        printf("Try searching for specific websites or topics to get real webpage URLs.\n");
+        printf("\nPress Enter to return to search results...");
+        getchar();
+        reset_prog_mode();
+        refresh();
+        return;
+    }
     
     // Use your existing HTTP client and HTML renderer
     HTTPResponse response = {NULL, 0};
     if (http_search(url, "", &response) == 0) {
         char *rendered_content = html_renderer(response.data);
         if (rendered_content) {
-            printf("%s\n", rendered_content);
+            printf("%s", rendered_content);
             free(rendered_content);
         } else {
             printf("Failed to render webpage content.\n");
@@ -265,8 +272,7 @@ void display_webpage_content(const char *url) {
         printf("Failed to fetch webpage.\n");
     }
     
-    printf("\n==================================================\n");
-    printf("Press Enter to return to search results...");
+    printf("\nPress Enter to return to search results...");
     getchar();
     
     // Resume ncurses mode
