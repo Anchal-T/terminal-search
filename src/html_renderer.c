@@ -218,3 +218,123 @@ char *html_renderer(const char *html_content) {
 
     return output;
 }
+
+char *html_renderer_plain(const char *html_content) {
+    if(html_content == NULL) return NULL;
+
+    htmlDocPtr doc = htmlReadMemory(html_content, strlen(html_content), NULL, NULL, 
+                                    HTML_PARSE_RECOVER | HTML_PARSE_NOERROR | HTML_PARSE_NOWARNING);
+    if(doc == NULL) {
+        fprintf(stderr, "Failed to parse HTML content\n");
+        return NULL;
+    }
+
+    xmlNode *root = xmlDocGetRootElement(doc);
+    if(root == NULL) {
+        xmlFreeDoc(doc);
+        fprintf(stderr, "No root element found in HTML document\n");
+        return NULL;
+    }
+
+    char *output = malloc(INITIAL_BUFFER_CAPACITY);
+    if(output == NULL) {
+        xmlFreeDoc(doc);
+        fprintf(stderr, "Failed to allocate memory for output\n");
+        return NULL;
+    }
+    size_t size = 0;
+    size_t capacity = INITIAL_BUFFER_CAPACITY;
+    output[0] = '\0';
+
+    // Use plain text renderer that doesn't add color codes
+    render_node_plain(root, &output, &size, &capacity);
+
+    xmlFreeDoc(doc);
+    xmlCleanupParser();
+
+    return output;
+}
+
+static void render_node_plain(xmlNode *node, char **output, size_t *size, size_t *capacity) {
+    for(xmlNode *cur = node; cur; cur = cur->next) {
+        if (cur->type == XML_ELEMENT_NODE) {
+            const char *name = (const char *)cur->name;
+            int element_hash = get_element_hash(name);
+            
+            // Skip non-content elements
+            switch(element_hash) {
+                case HASH_STYLE:
+                case HASH_SCRIPT:
+                case HASH_HEAD:
+                case HASH_META:
+                case HASH_LINK:
+                case HASH_NOSCRIPT:
+                    continue;
+            }
+
+            // Opening tags - no color codes, just formatting
+            switch(element_hash) {
+                case HASH_TITLE:
+                    append_to_output(output, size, capacity, "\n--- ");
+                    break;
+                case HASH_H1:
+                    append_to_output(output, size, capacity, "\n\n");
+                    break;
+                case HASH_H2:
+                    append_to_output(output, size, capacity, "\n\n");
+                    break;
+                case HASH_H3:
+                    append_to_output(output, size, capacity, "\n\n");
+                    break;
+                case HASH_P:
+                    append_to_output(output, size, capacity, "\n");
+                    break;
+                case HASH_A:
+                    append_to_output(output, size, capacity, "[");
+                    break;
+                case HASH_LI:
+                    append_to_output(output, size, capacity, "\n  • ");
+                    break;
+                case HASH_BR:
+                    append_to_output(output, size, capacity, "\n");
+                    continue;
+            }
+        }
+        else if(cur->type == XML_TEXT_NODE) {
+            const char *content = (const char *)cur->content;
+            if(content) {
+                char *cleaned = clean_text(content);
+                if(cleaned && strlen(cleaned) > 0) {
+                    append_to_output(output, size, capacity, cleaned);
+                }
+                free(cleaned);
+            }
+        }
+
+        // Recursively render children
+        render_node_plain(cur->children, output, size, capacity);
+        
+        // Closing tags
+        if (cur->type == XML_ELEMENT_NODE) {
+            const char *name = (const char *)cur->name;
+            int element_hash = get_element_hash(name);
+            
+            switch(element_hash) {
+                case HASH_TITLE:
+                    append_to_output(output, size, capacity, " ---\n");
+                    break;
+                case HASH_H1:
+                case HASH_H2:
+                case HASH_H3:
+                    append_to_output(output, size, capacity, "\n");
+                    break;
+                case HASH_P:
+                    append_to_output(output, size, capacity, "\n");
+                    break;
+                case HASH_A:
+                    append_to_output(output, size, capacity, "]");
+                    break;
+            }
+        }
+    }
+}

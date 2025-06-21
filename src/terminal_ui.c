@@ -400,8 +400,8 @@ WebpageState* create_webpage_state(const char *url) {
         return NULL;
     }
     
-    // Render HTML to text
-    char *rendered_content = html_renderer(response.data);
+    // Render HTML to plain text (without ANSI codes)
+    char *rendered_content = html_renderer_plain(response.data);
     http_response_free(&response);
     
     if (!rendered_content) {
@@ -419,8 +419,8 @@ WebpageState* create_webpage_state(const char *url) {
     state->title = strdup("Webpage Content");
     state->scroll_offset = 0;
     
-    // Count lines first
-    int line_count = 1; // Start with 1 for the last line
+    // Count lines
+    int line_count = 1;
     for (char *p = rendered_content; *p; p++) {
         if (*p == '\n') line_count++;
     }
@@ -472,7 +472,40 @@ void display_webpage_in_ui(WebpageState *page_state) {
     
     for (int i = 0; i < content_height && i + page_state->scroll_offset < page_state->line_count; i++) {
         int line_index = i + page_state->scroll_offset;
-        mvprintw(start_y + i, 2, "%.*s", width-4, page_state->lines[line_index]);
+        char *line = page_state->lines[line_index];
+        
+        // Apply styling based on line content
+        if (line && strlen(line) >= 3 && line[0] == '-' && line[1] == '-' && line[2] == '-') {
+            // Title 
+            attron(COLOR_PAIR(TITLE_COLOR) | A_BOLD);
+            mvprintw(start_y + i, 2, "%.*s", width-4, line);
+            attroff(COLOR_PAIR(TITLE_COLOR) | A_BOLD);
+        }
+        else if (line && (strncmp(line, "  • ", 4) == 0)) {
+            // List item
+            attron(A_BOLD);
+            mvprintw(start_y + i, 2, "  •");
+            attroff(A_BOLD);
+            mvprintw(start_y + i, 6, " %.*s", width-8, line+4);
+        }
+        else if (line && strchr(line, '[') && strchr(line, ']')) {
+            // Line with links - highlight parts in brackets
+            int pos = 2;
+            for (char *c = line; *c; c++) {
+                if (*c == '[') {
+                    attron(COLOR_PAIR(URL_COLOR));
+                } else if (*c == ']') {
+                    attroff(COLOR_PAIR(URL_COLOR));
+                }
+                if (pos < width-2) {
+                    mvaddch(start_y + i, pos++, *c);
+                }
+            }
+        }
+        else {
+            // Regular text
+            mvprintw(start_y + i, 2, "%.*s", width-4, line);
+        }
     }
     
     refresh();
