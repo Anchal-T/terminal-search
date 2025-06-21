@@ -49,7 +49,7 @@ static int get_element_hash(const char *name) {
     return 0; // Unknown element
 }
 
-static void render_node(xmlNode *node, char **output, size_t *size, size_t *capacity){
+ void render_node(xmlNode *node, char **output, size_t *size, size_t *capacity){
     for(xmlNode *cur = node; cur; cur = cur->next) {
         if (cur->type == XML_ELEMENT_NODE) {
             const char *name = (const char *)cur->name;
@@ -133,7 +133,7 @@ static void render_node(xmlNode *node, char **output, size_t *size, size_t *capa
     }
 }
 
-static void append_to_output(char **output, size_t *size, size_t *capacity, const char *text) {
+ void append_to_output(char **output, size_t *size, size_t *capacity, const char *text) {
     size_t text_len = strlen(text);
     while(*size + text_len + 1 > *capacity) {
         *capacity *= 2;
@@ -149,7 +149,7 @@ static void append_to_output(char **output, size_t *size, size_t *capacity, cons
     (*output)[*size] = '\0';
 }
 
-static char *clean_text(const char *text) {
+ char *clean_text(const char *text) {
     if(text == NULL) return NULL;
 
     size_t len = strlen(text);
@@ -255,7 +255,7 @@ char *html_renderer_plain(const char *html_content) {
     return output;
 }
 
-static void render_node_plain(xmlNode *node, char **output, size_t *size, size_t *capacity) {
+ void render_node_plain(xmlNode *node, char **output, size_t *size, size_t *capacity) {
     for(xmlNode *cur = node; cur; cur = cur->next) {
         if (cur->type == XML_ELEMENT_NODE) {
             const char *name = (const char *)cur->name;
