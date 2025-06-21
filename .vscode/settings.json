@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "*.ejs": "html",
-        "http_client.h": "c"
+        "http_client.h": "c",
+        "typeinfo": "c"
     }
 }

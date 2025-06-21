@@ -5,3 +5,10 @@ a.out
 parse_webpage
 terminal_search
 .env
+obj/terminal_ui.o
+obj/parse_webpage.o
+obj/http_search.o
+obj/html_renderer.o
+obj/html_parser.o
+obj/env_loader.o
+obj/api_search.o
