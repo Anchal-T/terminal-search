@@ -125,7 +125,27 @@ int handle_input(SearchState *state){
         case '\r':
         case KEY_ENTER:
             if (state->count > 0) {
-                display_webpage_content(state->results[state->selected].url);
+                // Create webpage state and display in UI
+                WebpageState *page_state = create_webpage_state(state->results[state->selected].url);
+                if (page_state) {
+                    // Enter webpage viewing mode
+                    while (1) {
+                        display_webpage_in_ui(page_state);
+                        if (handle_webpage_input(page_state)) {
+                            break; // User pressed 'q' to go back
+                        }
+                    }
+                    free_webpage_state(page_state);
+                } else {
+                    // Show error message briefly
+                    int height, width;
+                    getmaxyx(stdscr, height, width);
+                    attron(COLOR_PAIR(STATUS_COLOR) | A_BOLD);
+                    mvprintw(height-3, 2, "Failed to load webpage content");
+                    attroff(COLOR_PAIR(STATUS_COLOR) | A_BOLD);
+                    refresh();
+                    sleep(1);
+                }
             }
             break;
             
@@ -369,4 +389,152 @@ void display_webpage_content(const char *url) {
     // Resume ncurses mode
     reset_prog_mode();
     refresh();
+}
+
+WebpageState* create_webpage_state(const char *url) {
+    if (!url) return NULL;
+    
+    // Fetch webpage content
+    HTTPResponse response = {NULL, 0};
+    if (http_search(url, "", &response) != 0) {
+        return NULL;
+    }
+    
+    // Render HTML to text
+    char *rendered_content = html_renderer(response.data);
+    http_response_free(&response);
+    
+    if (!rendered_content) {
+        return NULL;
+    }
+    
+    // Create webpage state
+    WebpageState *state = malloc(sizeof(WebpageState));
+    if (!state) {
+        free(rendered_content);
+        return NULL;
+    }
+    
+    state->url = strdup(url);
+    state->title = strdup("Webpage Content");
+    state->scroll_offset = 0;
+    
+    // Count lines first
+    int line_count = 1; // Start with 1 for the last line
+    for (char *p = rendered_content; *p; p++) {
+        if (*p == '\n') line_count++;
+    }
+    
+    // Allocate lines array
+    state->lines = malloc(sizeof(char*) * line_count);
+    state->line_count = 0;
+    
+    // Split content into lines
+    char *content_copy = strdup(rendered_content);
+    char *line = strtok(content_copy, "\n");
+    while (line != NULL && state->line_count < line_count) {
+        state->lines[state->line_count] = strdup(line);
+        state->line_count++;
+        line = strtok(NULL, "\n");
+    }
+    
+    free(content_copy);
+    free(rendered_content);
+    return state;
+}
+
+void display_webpage_in_ui(WebpageState *page_state) {
+    int height, width;
+    getmaxyx(stdscr, height, width);
+    
+    clear();
+    
+    // Draw border
+    attron(COLOR_PAIR(BORDER_COLOR));
+    box(stdscr, 0, 0);
+    attroff(COLOR_PAIR(BORDER_COLOR));
+    
+    // Title bar
+    attron(COLOR_PAIR(TITLE_COLOR) | A_BOLD);
+    mvprintw(1, 2, "Viewing: %.*s", width-10, page_state->url);
+    attroff(COLOR_PAIR(TITLE_COLOR) | A_BOLD);
+    
+    // Status bar
+    attron(COLOR_PAIR(STATUS_COLOR));
+    mvprintw(height-2, 2, "↑/↓: Scroll | q: Back to search | Page %d/%d", 
+             page_state->scroll_offset/10 + 1, 
+             (page_state->line_count + 9)/10);
+    attroff(COLOR_PAIR(STATUS_COLOR));
+    
+    // Content area
+    int content_height = height - 5;
+    int start_y = 3;
+    
+    for (int i = 0; i < content_height && i + page_state->scroll_offset < page_state->line_count; i++) {
+        int line_index = i + page_state->scroll_offset;
+        mvprintw(start_y + i, 2, "%.*s", width-4, page_state->lines[line_index]);
+    }
+    
+    refresh();
+}
+
+int handle_webpage_input(WebpageState *page_state) {
+    int ch = getch();
+    int height, width;
+    getmaxyx(stdscr, height, width);
+    int content_height = height - 5;
+    
+    switch (ch) {
+        case KEY_UP:
+        case 'k':
+            if (page_state->scroll_offset > 0) {
+                page_state->scroll_offset--;
+            }
+            break;
+            
+        case KEY_DOWN:
+        case 'j':
+            if (page_state->scroll_offset + content_height < page_state->line_count) {
+                page_state->scroll_offset++;
+            }
+            break;
+            
+        case KEY_NPAGE: // Page Down
+            page_state->scroll_offset += content_height;
+            if (page_state->scroll_offset + content_height >= page_state->line_count) {
+                page_state->scroll_offset = page_state->line_count - content_height;
+                if (page_state->scroll_offset < 0) page_state->scroll_offset = 0;
+            }
+            break;
+            
+        case KEY_PPAGE: // Page Up
+            page_state->scroll_offset -= content_height;
+            if (page_state->scroll_offset < 0) {
+                page_state->scroll_offset = 0;
+            }
+            break;
+            
+        case 'q':
+        case 'Q':
+        case KEY_BACKSPACE:
+        case 27: // ESC
+            return 1; // Go back to search
+            
+        default:
+            break;
+    }
+    
+    return 0; // Continue viewing webpage
+}
+
+void free_webpage_state(WebpageState *state) {
+    if (!state) return;
+    
+    for (int i = 0; i < state->line_count; i++) {
+        free(state->lines[i]);
+    }
+    free(state->lines);
+    free(state->title);
+    free(state->url);
+    free(state);
 }
